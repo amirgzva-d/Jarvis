@@ -31,7 +31,7 @@
 - [ ] Windows packaged EXE/NSIS install verification requires successful GitHub Actions run or connected Windows device.
 - [ ] Always-on wake outside browser and verified in-app real-time news/weather/price APIs are NOT implemented (requires native service / providers).
 
-## Incremental delivery v1.1.0 — 2026-10-20
+## Incremental delivery v1.2.0 — 2026-10-20
 
 **Implemented and unit-tested locally:**
 - Live server-side weather/geolocation with Open-Meteo, topic headlines via Google News RSS, and reference FX rates via ExchangeRate-API open access. Data is attributed with source and timestamps; failures are explicit, not hallucinated. No secret credentials or arbitrary-URL proxy.
@@ -45,3 +45,16 @@
 
 - Natural Persian requests for weather, news topics and FX conversion now route through attributed live providers instead of guessing from personal notes.
 - 42 deterministic unit/security tests green in development; Windows build/test and packaging via CI.
+
+## Windows 11 acceptance — Jarvis v1.2.0 (2026-10-20)
+
+- Repository remains independent from both MARIA repositories.
+- On DESKTOP-LR1PDM2, Jarvis 1.1.0 installer downloaded from the tagged GitHub Release, and its SHA-256 matched the published asset digest.
+- Installation completed without errors; its packaged local HTTP server returned status with 30 sample notes.
+- Live Windows test: Open-Meteo weather, Google News RSS, and reference FX rates all returned source-attributed data.
+- Packaged Edge TTS returned an audio/mpeg payload of 27,072 bytes. That verifies the API response, not the user's speaker output or microphone capture.
+- A Windows timer executed via a guarded local endpoint and reported its completion event.
+- This patch adds private-safe diagnostics in Settings, improved wake phrase recognition and CPU fallback when CUDA is unavailable. 48 automated tests passed on the Windows machine.
+- Native background listening remains opt-in and OFF; it needs local faster-whisper weights and access to a microphone.
+- Neither Codex CLI nor Claude CLI was detected in PATH during preflight. Generative-model functionality remains unverified until an account/provider is configured.
+- GPU/CUDA model inference, real spoken Persian recognition, audible speaker output, reboot autostart, and v1.2.0 packaged installer must be individually checked. Do not report them as 100% verified beforehand.

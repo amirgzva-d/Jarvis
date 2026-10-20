@@ -12,6 +12,7 @@ from urllib.parse import urlsplit
 from jarvis_core import JarvisState, ROOT, safe_config
 from system_tools import capabilities, recent_events, execute, plan_voice_command, post_event
 from live_info import live_query, LiveUnavailable
+from runtime_health import diagnostics
 from wake_service import WakeListener, startup_status, set_autostart
 from offline_voice import status as whisper_status, transcribe as whisper_transcribe, MAX_AUDIO
 
@@ -80,7 +81,7 @@ class JarvisHandler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path in ('/api/status','/status'):
             state = self.server.state
-            self._json(200,{'name':'Jarvis','version':'1.1.0','provider':state.cfg['provider'],
+            self._json(200,{'name':'Jarvis','version':'1.2.0','provider':state.cfg['provider'],
                             'notes':len(state.graph['nodes']), 'links':len(state.graph['links']),
                             'onlineTTS':bool(state.cfg.get('online_tts')),
                             'voice':state.cfg.get('voice'), 'folder':str(state.notes_dir)})
@@ -88,6 +89,9 @@ class JarvisHandler(BaseHTTPRequestHandler):
         if path == '/api/capabilities':
             self._json(200,{"system":capabilities(),"whisper":whisper_status(str(self.server.state.cfg.get("offline_stt_model", ""))),
                             "nativeWake":self.server.wake_listener.readiness(),"startup":startup_status()})
+            return
+        if path == '/api/diagnostics':
+            self._json(200,diagnostics(self.server.state.cfg,self.server.wake_listener.readiness()))
             return
         if path == '/api/events':
             self._json(200,{"events":recent_events()})

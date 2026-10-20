@@ -10,9 +10,26 @@ import os
 import sys
 import threading
 import time
+import re
+import unicodedata
 from pathlib import Path
 
-WAKE_PHRASES = ('hey jarvis', 'هی جارویس', 'سلام جارویس', 'جارویس')
+WAKE_PHRASES = ('hey jarvis', 'hi jarvis', 'jarvis', 'هی جارویس', 'سلام جارویس', 'جارویس', 'هی جرویس')
+
+
+def wake_phrase_detected(value: str) -> bool:
+    text = unicodedata.normalize('NFKC',str(value or '')).lower().replace('ي','ی').replace('ك','ک')
+    text = re.sub(r'[^\w\u0600-\u06ff]+',' ',text).strip()
+    return any(re.search(r'(?<!\w)' + re.escape(phrase) + r'(?!\w)',text) for phrase in WAKE_PHRASES)
+
+
+def load_whisper_with_cpu_fallback(model_path: str, device: str, factory):
+    requested = device if device in ('auto','cpu','cuda') else 'cpu'
+    try:
+        return factory(model_path,device=requested,compute_type='int8',local_files_only=True), requested, False
+    except Exception:
+        if requested=='cpu': raise
+        return factory(model_path,device='cpu',compute_type='int8',local_files_only=True), 'cpu', True
 
 class WakeListener:
     def __init__(self, config: dict, on_wake):
@@ -49,9 +66,11 @@ class WakeListener:
             import numpy as np
             import sounddevice as sd
             from faster_whisper import WhisperModel
-            model=WhisperModel(str(Path(self.config['offline_stt_model']).expanduser()),
-                               device=str(self.config.get('offline_stt_device') or 'cpu'),compute_type='int8',local_files_only=True)
-            self.state='listening';self.detail='میکروفون محلی فعال است.'
+            model,actual_device,fallback=load_whisper_with_cpu_fallback(
+                str(Path(self.config['offline_stt_model']).expanduser()),
+                str(self.config.get('offline_stt_device') or 'cpu'),WhisperModel)
+            self.state='listening'
+            self.detail='میکروفون فعال است؛ پردازش روی CPU برای سازگاری با GPU انجام می‌شود.' if fallback else f'میکروفون محلی فعال است ({actual_device}).'
             sample_rate=16000
             last_trigger=0.0
             with sd.InputStream(samplerate=sample_rate,channels=1,dtype='float32',blocksize=4096) as stream:
@@ -68,7 +87,7 @@ class WakeListener:
                     segments,_=model.transcribe(recorded,language='fa',beam_size=1,condition_on_previous_text=False,
                                                 vad_filter=True,without_timestamps=True)
                     detected=' '.join(s.text for s in segments).lower().strip()
-                    if any(phrase in detected for phrase in WAKE_PHRASES) and time.monotonic()-last_trigger>8:
+                    if wake_phrase_detected(detected) and time.monotonic()-last_trigger>8:
                         last_trigger=time.monotonic()
                         self.last_wake=time.strftime('%Y-%m-%dT%H:%M:%S')
                         self.on_wake(detected[:450])

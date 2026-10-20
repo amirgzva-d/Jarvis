@@ -73,4 +73,53 @@
   native.onclick=()=>mutate('enable',native.getAttribute('aria-pressed')!=='true');
   autostart.onclick=()=>mutate('startup',autostart.getAttribute('aria-pressed')!=='true');
   refresh();
+
+  // Diagnostic readiness is read-only. Never send a saved API key to this page.
+  const settingsPanel=el('settings-dialog')?.querySelector('form');
+  if(settingsPanel){
+    const section=document.createElement('section');
+    section.className='jarvis-health';
+    const heading=document.createElement('h3');heading.textContent='وضعیت واقعی موتورهای جارویس';
+    const description=document.createElement('p');
+    description.textContent='گزارش محلی از نصب و پیکربندی؛ موفقیت اتصال مدل، میکروفون یا کارت گرافیک فقط پس از آزمون عملی تأیید می‌شود.';
+    const refreshButton=document.createElement('button');
+    refreshButton.type='button';refreshButton.className='outline-btn';
+    refreshButton.textContent='بررسی سلامت و پیش‌نیازها';
+    const report=document.createElement('div');report.className='jarvis-health-report';
+    report.setAttribute('role','status');report.setAttribute('aria-live','polite');
+    section.append(heading,description,refreshButton,report);
+    settingsPanel.append(section);
+    const items=[
+      ['brain','مغز هوش مصنوعی'],['persian_voice','صدای فارسی'],
+      ['local_speech','تشخیص گفتار محلی'],['native_wake','بیدارباش ویندوز'],
+      ['windows_control','کنترل ویندوز'],['live_information','اطلاعات زنده']
+    ];
+    refreshButton.addEventListener('click',async()=>{
+      refreshButton.disabled=true;report.replaceChildren();
+      report.textContent='در حال بررسی پیش‌نیازهای واقعی...';
+      try{
+        const response=await fetch('/api/diagnostics',{cache:'no-store'});
+        if(!response.ok)throw new Error('سرور تشخیص سلامت پاسخ نداد.');
+        const data=await response.json();
+        report.replaceChildren();
+        for(const [key,title] of items){
+          const item=data[key]||{};
+          const row=document.createElement('div');row.className='jarvis-health-row';
+          const name=document.createElement('strong');name.textContent=title;
+          const indicator=document.createElement('span');
+          const ready=key==='native_wake'?Boolean(item.active):
+            key==='windows_control'?Boolean(item.supported):
+            key==='live_information'?Boolean(item.implemented):
+            Boolean(item.configured);
+          indicator.className=ready?'health-ready':'health-missing';
+          indicator.textContent=ready?'موجود / نیازمند آزمون':'نیازمند راه‌اندازی';
+          const detail=document.createElement('small');
+          detail.textContent=item.detail||'این قابلیت به آزمایش عملی نیاز دارد.';
+          row.append(name,indicator,detail);
+          report.append(row);
+        }
+      }catch(error){report.textContent='خطا در بررسی سلامت: '+error.message;}
+      finally{refreshButton.disabled=false;}
+    });
+  }
 })();

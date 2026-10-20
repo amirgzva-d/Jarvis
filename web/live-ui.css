@@ -15,3 +15,16 @@
 .live-attribution{font-size:10px;color:#759cae;margin-top:12px;border-top:1px solid #254e66;padding-top:9px;overflow-wrap:anywhere}.live-attribution a{color:#58c5ef}
 .native-card{display:grid;gap:10px;margin-top:16px;padding:14px;border:1px solid #246782;background:#0a293d;border-radius:11px}.native-card strong{font-size:12px;color:#e5f8ff}.native-controls{display:flex;gap:8px;flex-wrap:wrap}.native-controls button{border:1px solid #33799b;background:#16445b;border-radius:8px;padding:8px 10px;color:#cbf4ff;font-size:10px;cursor:pointer}.native-controls button[aria-pressed=true]{background:#1e765e;border-color:#4cd5b0;color:white}.native-controls button:disabled{opacity:.45;cursor:not-allowed}.native-card .native-status{font-size:10px;line-height:1.8;color:#a6c5d4}
 @media(max-width:550px){.live-header{padding:19px}.live-body{padding:17px}.live-form{grid-template-columns:1fr}}
+
+/* Read-only hardware readiness: compact, legible, and safe in RTL settings. */
+.jarvis-health{margin-top:18px;padding:17px;border:1px solid rgba(79,181,243,.29);border-radius:16px;background:linear-gradient(135deg,rgba(19,55,79,.78),rgba(5,17,36,.94));}
+.jarvis-health h3{margin:0 0 8px;font-size:1rem;color:#e6f8ff}
+.jarvis-health>p{margin:0 0 12px;font-size:.84rem;line-height:1.8;color:#9cbcd0}
+.jarvis-health .outline-btn{margin:5px 0 12px;min-height:40px}
+.jarvis-health-report{display:grid;gap:8px;color:#d3eafd}
+.jarvis-health-row{display:grid;grid-template-columns:minmax(110px,1fr) auto;gap:5px 12px;padding:11px 12px;border:1px solid rgba(95,158,197,.22);border-radius:10px;background:rgba(4,17,33,.65)}
+.jarvis-health-row strong{font-size:.86rem}
+.jarvis-health-row span{font-size:.73rem;white-space:nowrap}
+.jarvis-health-row small{grid-column:1/-1;color:#99b9cd;font-size:.76rem;line-height:1.65}
+.jarvis-health .health-ready{color:#73e9c6}
+.jarvis-health .health-missing{color:#e9c78a}

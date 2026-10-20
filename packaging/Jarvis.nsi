@@ -1,7 +1,7 @@
 Unicode True
 !include "MUI2.nsh"
 Name "Jarvis"
-OutFile "..\dist\Jarvis-Setup-1.1.0.exe"
+OutFile "..\dist\Jarvis-Setup-1.2.0.exe"
 InstallDir "$LOCALAPPDATA\Programs\Jarvis"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
@@ -22,7 +22,7 @@ Section "Install"
   WriteUninstaller "$INSTDIR\Uninstall-Jarvis.exe"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Jarvis" "DisplayName" "Jarvis"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Jarvis" "UninstallString" '"$INSTDIR\Uninstall-Jarvis.exe"'
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Jarvis" "DisplayVersion" "1.1.0"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Jarvis" "DisplayVersion" "1.2.0"
 SectionEnd
 Section "Uninstall"
   Delete "$INSTDIR\Jarvis.exe"
