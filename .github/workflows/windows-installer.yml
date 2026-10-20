@@ -19,6 +19,27 @@ jobs:
       - name: Build Jarvis.exe / NSIS installer
         shell: pwsh
         run: ./build_windows.ps1
+      - name: Smoke-test packaged Jarvis.exe on Windows
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "$pwd\dist\Jarvis.exe" -PassThru
+          try {
+            $ready = $false
+            for ($i=0; $i -lt 50; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $status = Invoke-RestMethod -Uri 'http://127.0.0.1:8800/api/status' -TimeoutSec 2
+                if ($status.name -eq 'Jarvis' -and $status.notes -ge 30) { $ready = $true; break }
+              } catch {}
+              if ($process.HasExited) { throw "Jarvis.exe exited before HTTP startup: $($process.ExitCode)" }
+            }
+            if (-not $ready) { throw 'Packaged Jarvis.exe did not start the local HTTP service in 50 seconds.' }
+            $graph = Invoke-RestMethod -Uri 'http://127.0.0.1:8800/api/graph' -TimeoutSec 5
+            if ($graph.nodes.Count -lt 30) { throw 'Packaged graph has fewer than 30 sample notes.' }
+            Write-Host "Packaged EXE smoke passed: $($status.notes) notes and $($status.links) links."
+          } finally {
+            Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+          }
       - name: Publish downloadable build artifacts
         uses: actions/upload-artifact@v4
         with:
