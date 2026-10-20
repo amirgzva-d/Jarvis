@@ -166,11 +166,13 @@ def ask_provider(question: str, scored: list[tuple[float, dict]], cfg: dict, his
     if provider in ('codex-cli', 'claude-cli'):
         import shutil
         bin_name = 'codex' if provider == 'codex-cli' else 'claude'
-        if not shutil.which(bin_name):
+        executable = shutil.which(bin_name)
+        if not executable:
             raise ProviderError(f'{bin_name} روی این سیستم نصب نیست یا در PATH پیدا نشد.')
-        # No shell and no arbitrary agent tools. codex is sandboxed read-only.
-        args = ([bin_name, 'exec', '--skip-git-repo-check', '--sandbox', 'read-only', '-']
-                if bin_name == 'codex' else [bin_name, '--print', '--output-format', 'text', '--tools', ''])
+        # Windows CreateProcess cannot reliably resolve npm .CMD shims by bare name.
+        # Use the exact absolute resolved executable while keeping shell=False.
+        args = ([executable, 'exec', '--skip-git-repo-check', '--sandbox', 'read-only', '-']
+                if bin_name == 'codex' else [executable, '--print', '--output-format', 'text', '--tools', ''])
         try:
             with tempfile.TemporaryDirectory(prefix='jarvis-brain-') as tmp:
                 result = subprocess.run(args, input=prompt, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -181,6 +183,12 @@ def ask_provider(question: str, scored: list[tuple[float, dict]], cfg: dict, his
         except OSError as e:
             raise ProviderError(f'اجرای {bin_name} ناموفق بود.') from e
         if result.returncode != 0:
+            # Classify known provider failures, but never reflect stderr or tokens to the browser.
+            reason = (result.stderr or '').lower()
+            if '401' in reason or 'unauthorized' in reason or 'incorrect api key' in reason:
+                raise ProviderError(f'{bin_name} با کلید یا ورود نامعتبر پاسخ داد. ورود حساب را در محیط امن خط فرمان اصلاح کن.')
+            if '429' in reason or 'rate limit' in reason or 'quota' in reason:
+                raise ProviderError(f'سهمیه یا محدودیت درخواست‌های {bin_name} مانع پاسخ شد.')
             raise ProviderError(f'{bin_name} پاسخ نداد؛ ورود به حساب و دسترسی مدل را بررسی کن.')
         return result.stdout.strip()[-4000:]
     raise ProviderError('نوع provider در config.json معتبر نیست.')

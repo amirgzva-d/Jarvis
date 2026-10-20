@@ -81,7 +81,7 @@ class JarvisHandler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path in ('/api/status','/status'):
             state = self.server.state
-            self._json(200,{'name':'Jarvis','version':'1.2.0','provider':state.cfg['provider'],
+            self._json(200,{'name':'Jarvis','version':'1.2.1','provider':state.cfg['provider'],
                             'notes':len(state.graph['nodes']), 'links':len(state.graph['links']),
                             'onlineTTS':bool(state.cfg.get('online_tts')),
                             'voice':state.cfg.get('voice'), 'folder':str(state.notes_dir)})
