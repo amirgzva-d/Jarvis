@@ -115,3 +115,29 @@ def live_query(kind: str, query: str, *, base='USD',quote='EUR',amount=1) -> dic
     with _LOCK:
         CACHE[key]=(now+(180 if kind!='exchange' else 1800), result)
     return dict(result,cached=False)
+
+
+CURRENCY_NAMES = {'دلار':'USD','دلار آمریکا':'USD','یورو':'EUR','پوند':'GBP','ریال':'IRR',
+                  'usd':'USD','eur':'EUR','gbp':'GBP','irr':'IRR','jpy':'JPY','ین':'JPY',
+                  'aud':'AUD','cad':'CAD','try':'TRY','لیر':'TRY','دلار کانادا':'CAD'}
+
+def recognize_live_question(question: str) -> dict | None:
+    """Conservative opt-in natural language dispatch; uncertain price questions are not guessed."""
+    q = str(question or '').strip().lower().replace('ي','ی').replace('ك','ک').replace('‌',' ')
+    if len(q) > 160 or not q: return None
+    weather_match=re.fullmatch(r'(?:آب و هوا(?:ی)?|آبوهوا(?:ی)?|هواشناسی|دمای فعلی|weather)\s+(?:در |شهر |برای )?(.+?)(?:\s+(?:امروز|الان|چطوره|چگونه است))?[؟?]?',q)
+    if weather_match:
+        return {'kind':'weather','query':weather_match.group(1).strip(' ؟?')}
+    news_match=re.fullmatch(r'(?:آخرین |جدیدترین )?(?:اخبار|خبرهای|news)\s+(?:درباره |از )?(.+?)[؟?]?',q)
+    if news_match:
+        return {'kind':'news','query':news_match.group(1).strip(' ؟?')}
+    currency_match=re.fullmatch(r'(?:نرخ تبدیل|تبدیل)\s+([\d۰-۹٠-٩.,]+)?\s*(دلار آمریکا|دلار کانادا|دلار|یورو|پوند|ریال|لیر|ین|usd|eur|gbp|irr|jpy|cad|try|aud)\s+(?:به|to)\s+(دلار آمریکا|دلار کانادا|دلار|یورو|پوند|ریال|لیر|ین|usd|eur|gbp|irr|jpy|cad|try|aud)[؟?]?',q)
+    if currency_match:
+        from decimal import Decimal, InvalidOperation
+        number=(currency_match.group(1) or '1').translate(str.maketrans('۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩','01234567890123456789')).replace(',','')
+        try:amount=float(Decimal(number))
+        except (InvalidOperation,ValueError):return None
+        if not (0 < amount <= 10**9):return None
+        return {'kind':'exchange','query':'FX','base':CURRENCY_NAMES[currency_match.group(2)],
+                'quote':CURRENCY_NAMES[currency_match.group(3)],'amount':amount}
+    return None

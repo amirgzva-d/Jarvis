@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   test:
     runs-on: windows-latest
@@ -48,3 +50,17 @@ jobs:
             dist/Jarvis.exe
             dist/Jarvis-Setup-1.1.0.exe
           if-no-files-found: error
+
+      - name: Publish verified Jarvis 1.1.0 setup to GitHub Releases
+        if: github.ref == 'refs/heads/main'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'jarvis-v1.1.0'
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag 'dist/Jarvis-Setup-1.1.0.exe' 'dist/Jarvis.exe' --clobber
+          } else {
+            gh release create $tag 'dist/Jarvis-Setup-1.1.0.exe' 'dist/Jarvis.exe' --target $env:GITHUB_SHA --title 'Jarvis 1.1.0 - Native Wake & Live Intelligence' --notes 'Jarvis 1.1.0: real sourced weather, news and exchange reference information, native optional Windows wake listener, Persian assistant and cinematic responsive UI. Real-time data and wake depend on network, installed microphone/model, hardware and opt-in user permissions.' --latest
+          }

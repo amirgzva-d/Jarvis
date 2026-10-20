@@ -42,3 +42,6 @@
 - Updated Windows packaging to collect offline speech dependencies; model weights remain external user-provisioned data.
 
 **Hardware verification still needed before any 100% claim:** speech recognition accuracy with actual microphone, NVIDIA GPU/CUDA support, startup after reboot, native Windows command operation, external API network access, and installer usability. 8 GB RAM / GeForce MX450 2GB device is a restricted-performance target; CPU fallback is available but depends on model selection.
+
+- Natural Persian requests for weather, news topics and FX conversion now route through attributed live providers instead of guessing from personal notes.
+- 42 deterministic unit/security tests green in development; Windows build/test and packaging via CI.

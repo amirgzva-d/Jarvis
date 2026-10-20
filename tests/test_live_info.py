@@ -2,6 +2,9 @@
 import unittest
 from unittest.mock import patch
 import live_info
+from jarvis_core import JarvisState
+from pathlib import Path
+import tempfile
 
 class LiveInfoTest(unittest.TestCase):
     def setUp(self):live_info.CACHE.clear()
@@ -23,6 +26,22 @@ class LiveInfoTest(unittest.TestCase):
         with patch('live_info._json',return_value={'result':'success','rates':{'EUR':.92},'time_last_update_utc':'Monday'}):
             r=live_info.exchange('USD','EUR',100)
             self.assertIn('92.0000',r['answer']);self.assertIn('بازار آزاد',r['answer'])
+    def test_persian_live_intents_precise(self):
+        self.assertEqual(live_info.recognize_live_question('آب و هوای تهران')['kind'],'weather')
+        self.assertEqual(live_info.recognize_live_question('اخبار هوش مصنوعی')['kind'],'news')
+        fx=live_info.recognize_live_question('نرخ تبدیل ۱۰۰ دلار به یورو')
+        self.assertEqual((fx['base'],fx['quote'],fx['amount']),('USD','EUR',100))
+        self.assertIsNone(live_info.recognize_live_question('قیمت طلا چند شده'))
+        self.assertIsNone(live_info.recognize_live_question('weather'))
+    def test_ask_routes_facts_not_private_notes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=Path(tmp);(root/'notes').mkdir();(root/'web').mkdir()
+            st=JarvisState(root,{'notes_folder':'notes','provider':'notes-only'})
+            with patch('live_info.live_query',return_value={'answer':'هوای آزمایشی 21 درجه','provider':'Open-Meteo','updated_at':'TEST','kind':'weather'}):
+                ans=st.ask('آب و هوای تهران')
+            self.assertEqual(ans['mode'],'live:weather')
+            self.assertEqual(ans['sources'],[])
+            self.assertIn('TEST',ans['answer'])
     def test_input_guards(self):
         for invalid in ('','x'*120):
             with self.assertRaises(ValueError):live_info.weather(invalid)

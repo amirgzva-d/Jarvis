@@ -208,6 +208,27 @@ class JarvisState:
             info = self.remember(remember.group(1))
             return {'answer':'یادم ماند، قربان. یک ستارهٔ تازه به کهکشان اضافه شد. ✨','sources':[info['id']],
                     'note':info, 'created':True,'mode':'memory'}
+        # Live facts are intentionally routed outside the notes-only brain;
+        # their provider and timestamp are surfaced rather than attributed to private notes.
+        from live_info import recognize_live_question, live_query, LiveUnavailable
+        live=recognize_live_question(question)
+        if live is not None:
+            try:
+                result=live_query(**live)
+                answer=result['answer']
+                if result.get('items'):
+                    answer+=' '+ ' | '.join(x['title'] for x in result['items'][:3])
+                answer+=' (منبع: '+result['provider']+'؛ بروزرسانی: '+result['updated_at']+')'
+                mode='live:'+result['kind']
+                warning=None
+            except LiveUnavailable as exc:
+                answer='در حال حاضر داده معتبر زنده در دسترس نیست: '+str(exc)
+                mode='live-unavailable'
+                warning=str(exc)
+            with self.lock:
+                self.history.extend([{'role':'user','content':question},{'role':'assistant','content':answer}])
+                self.history=self.history[-12:]
+            return {'answer':answer,'sources':[],'mode':mode,'warning':warning,'created':False}
         with self.lock:
             scored = score_nodes(question, self.graph)
             history = list(self.history[-6:])
