@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+*.py[cod]
+*.spec
+build/
+dist/
+config.json
+.venv/
+notes/inbox/
+
+# Generated index may expose private user Markdown.
+web/data.js

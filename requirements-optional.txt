@@ -1,0 +1,3 @@
+# The core indexer, server, RAG retrieval, and note memory need no pip packages.
+# This optional package generates Persian neural MP3 speech from the Edge online service.
+edge-tts>=7.2.0,<8

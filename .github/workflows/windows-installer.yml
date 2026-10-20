@@ -1,0 +1,29 @@
+name: Build Jarvis Windows installer
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Unit and HTTP security tests
+        run: python -m unittest discover -s tests -v
+      - name: Install NSIS for independent Windows Setup.exe
+        shell: pwsh
+        run: choco install nsis --yes --no-progress
+      - name: Build Jarvis.exe / NSIS installer
+        shell: pwsh
+        run: ./build_windows.ps1
+      - name: Publish downloadable build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Jarvis-Windows-x64-1.0.0
+          path: |
+            dist/Jarvis.exe
+            dist/Jarvis-Setup-1.0.0.exe
+          if-no-files-found: error

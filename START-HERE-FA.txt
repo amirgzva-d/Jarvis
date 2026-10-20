@@ -1,0 +1,24 @@
+جارویس 1.0.0 — پروژه جداگانه از ماریا
+===================================
+
+اجرای فوری در ویندوز (با Python 3):
+  1) فایل ZIP را Extract کن.
+  2) فایل run_jarvis_windows.bat را دوبار کلیک کن.
+  3) صفحه http://127.0.0.1:8800 باز می‌شود.
+
+برای فعال شدن صدای طبیعی فارسی:
+  py -3 -m pip install edge-tts
+
+برای ساخت EXE در ویندوز:
+  روی فولدر Jarvis راست‌کلیک → Open in Terminal
+  .\build_windows.ps1
+  خروجی: dist\Jarvis.exe
+  اگر NSIS نصب باشد: dist\Jarvis-Setup-1.0.0.exe
+
+Codex: npm install -g @openai/codex && codex login
+Claude: نصب Claude Code و ورود به حساب
+فایل config.json را برای provider و notes_folder تنظیم کن.
+اگر مغز آنلاین فعال نباشد، برنامه خلاصه مرتبط یادداشت را نشان می‌دهد.
+
+نکته: اکنون فایل EXE کامپایل‌شده داخل ZIP نیست؛ فایل‌های پروژه و ابزار ساخت EXE آماده‌اند.
+پروژه MARIA تغییر نکرده است. برای اطلاعات بیشتر README.md را بخوان.
