@@ -7,5 +7,6 @@
   "online_tts": true,
   "voice": "fa-IR-FaridNeural",
   "offline_stt_model": "",
-  "offline_stt_device": "auto"
+  "offline_stt_device": "auto",
+  "native_wake_enabled": false
 }

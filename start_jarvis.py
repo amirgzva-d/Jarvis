@@ -24,4 +24,4 @@ def get_root():
     return home
 
 if __name__=='__main__':
-    run(get_root(),open_browser=True)
+    run(get_root(),open_browser='--background' not in sys.argv)

@@ -69,7 +69,7 @@
     let t=0;
     function frame() {
       ctx.clearRect(0,0,W,H);
-      const boost=['listening','thinking','speaking','success'].includes(currentState)?1.7:1;
+      const boost=(['listening','thinking','speaking','success'].includes(currentState)?1.7:1)+Math.min(1.9,Number(window.jarvisAudioLevel||0)*5);
       for(const p of particleDots) {
         const x=p.x + Math.sin(t*.7+p.p)*2.8*boost;
         const y=p.y + Math.cos(t*.47+p.p)*3*boost;

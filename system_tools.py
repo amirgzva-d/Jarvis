@@ -36,6 +36,11 @@ def _timer_done(label: str):
             winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
         except Exception: pass
 
+def post_event(event: str, text: str):
+    with _EVENT_LOCK:
+        _EVENTS.append({'event':event,'text':str(text)[:500], 'time':datetime.now().isoformat()})
+        if len(_EVENTS)>100: del _EVENTS[:-80]
+
 def recent_events():
     with _EVENT_LOCK:
         return list(_EVENTS[-20:])

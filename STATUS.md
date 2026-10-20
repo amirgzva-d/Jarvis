@@ -30,3 +30,15 @@
 - [ ] Real Windows device currently offline; microphone, GPU, speech and OS commands not validated on target machine.
 - [ ] Windows packaged EXE/NSIS install verification requires successful GitHub Actions run or connected Windows device.
 - [ ] Always-on wake outside browser and verified in-app real-time news/weather/price APIs are NOT implemented (requires native service / providers).
+
+## Incremental delivery v1.1.0 — 2026-10-20
+
+**Implemented and unit-tested locally:**
+- Live server-side weather/geolocation with Open-Meteo, topic headlines via Google News RSS, and reference FX rates via ExchangeRate-API open access. Data is attributed with source and timestamps; failures are explicit, not hallucinated. No secret credentials or arbitrary-URL proxy.
+- New, responsive in-app Live Intelligence modal. Dynamic loading, error/attribution states and safe external news links. `POST /api/live` is constrained to fixed upstream providers.
+- Opt-in native wake worker outside the browser tab while the Jarvis desktop process runs. Uses local audio (sounddevice and faster-whisper), local model path, secure microphone opt-in, optional current-user autostart, time-based wake throttle, and never performs spoken privileged actions in the background. Reopens Jarvis UI when awake. Not a Windows service running after the Jarvis process is terminated.
+- Wake status and autostart controls are real, permission-guarded routes, not simulated UI. If dependencies, local model or GPU are unavailable, the feature reports it and stays disabled.
+- Real audio waveform amplitude integration when Edge TTS MP3 plays through WebAudio; browser synthesized voices have state-based animation without claiming exact audio samples.
+- Updated Windows packaging to collect offline speech dependencies; model weights remain external user-provisioned data.
+
+**Hardware verification still needed before any 100% claim:** speech recognition accuracy with actual microphone, NVIDIA GPU/CUDA support, startup after reboot, native Windows command operation, external API network access, and installer usability. 8 GB RAM / GeForce MX450 2GB device is a restricted-performance target; CPU fallback is available but depends on model selection.

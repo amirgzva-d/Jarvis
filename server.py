@@ -10,7 +10,9 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit
 from jarvis_core import JarvisState, ROOT, safe_config
-from system_tools import capabilities, recent_events, execute, plan_voice_command
+from system_tools import capabilities, recent_events, execute, plan_voice_command, post_event
+from live_info import live_query, LiveUnavailable
+from wake_service import WakeListener, startup_status, set_autostart
 from offline_voice import status as whisper_status, transcribe as whisper_transcribe, MAX_AUDIO
 
 mimetypes.add_type('application/javascript', '.js')
@@ -21,7 +23,19 @@ class JarvisServer(ThreadingHTTPServer):
     allow_reuse_address = True
     def __init__(self, address, state: JarvisState):
         self.state = state
+        self.wake_listener = WakeListener(state.cfg, lambda sentence: self._wake_event(sentence))
         super().__init__(address, JarvisHandler)
+    def _wake_event(self, sentence):
+        post_event('wake', 'صدای بیدارباش شناسایی شد: '+sentence[:180])
+        try:
+            import webbrowser
+            webbrowser.open(f'http://127.0.0.1:{self.server_address[1]}/')
+        except (OSError, RuntimeError): pass
+        try:
+            import winsound
+            winsound.MessageBeep()
+        except (ImportError, OSError): pass
+        # No unattended OS action is executed from the microphone.
 
 class JarvisHandler(BaseHTTPRequestHandler):
     server: JarvisServer
@@ -66,13 +80,14 @@ class JarvisHandler(BaseHTTPRequestHandler):
         path = urlsplit(self.path).path
         if path in ('/api/status','/status'):
             state = self.server.state
-            self._json(200,{'name':'Jarvis','version':'1.0.0','provider':state.cfg['provider'],
+            self._json(200,{'name':'Jarvis','version':'1.1.0','provider':state.cfg['provider'],
                             'notes':len(state.graph['nodes']), 'links':len(state.graph['links']),
                             'onlineTTS':bool(state.cfg.get('online_tts')),
                             'voice':state.cfg.get('voice'), 'folder':str(state.notes_dir)})
             return
         if path == '/api/capabilities':
-            self._json(200,{"system":capabilities(),"whisper":whisper_status(str(self.server.state.cfg.get("offline_stt_model", "")))})
+            self._json(200,{"system":capabilities(),"whisper":whisper_status(str(self.server.state.cfg.get("offline_stt_model", ""))),
+                            "nativeWake":self.server.wake_listener.readiness(),"startup":startup_status()})
             return
         if path == '/api/events':
             self._json(200,{"events":recent_events()})
@@ -84,7 +99,7 @@ class JarvisHandler(BaseHTTPRequestHandler):
             path = '/index.html'
         rel = path.lstrip('/')
         # Explicit static allowlist. Prevent exposing config, Python source and note files.
-        if rel not in ('index.html','style.css','app.js','data.js','favicon.svg','premium.css','premium.js','offline3d.js'):
+        if rel not in ('index.html','style.css','app.js','data.js','favicon.svg','premium.css','premium.js','offline3d.js','live-ui.js','live-ui.css'):
             self._bad(404,'مسیر وجود ندارد.')
             return
         root = self.server.state.web_dir.resolve()
@@ -96,12 +111,12 @@ class JarvisHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         if not self._guard(write=True):return
         path = urlsplit(self.path).path
-        if path not in ('/ask','/remember','/speak','/api/reindex','/api/plan','/api/execute','/api/transcribe'):
+        if path not in ('/ask','/remember','/speak','/api/reindex','/api/plan','/api/execute','/api/transcribe','/api/live','/api/native-wake'):
             self._bad(404,'مسیر وجود ندارد.')
             return
         try:
             # Privileged operations must originate in this local UI; form posts / remote sites cannot trigger them.
-            privileged = path in ('/api/execute','/api/transcribe')
+            privileged = path in ('/api/execute','/api/transcribe','/api/native-wake')
             if privileged and (not self.headers.get('Origin') or self.headers.get('X-Jarvis-Action') != 'local-ui'):
                 self._bad(403,'این عملیات تنها از رابط محلی جارویس مجاز است.')
                 return
@@ -124,7 +139,34 @@ class JarvisHandler(BaseHTTPRequestHandler):
             if not isinstance(obj,dict):
                 raise ValueError('داده ارسالی باید یک شیء JSON باشد.')
             state = self.server.state
-            if path == '/api/plan':
+            if path == '/api/live':
+                result=live_query(str(obj.get('kind','')),str(obj.get('query','')),base=str(obj.get('base','USD')),
+                                  quote=str(obj.get('quote','EUR')),amount=float(obj.get('amount',1)))
+                self._json(200,result)
+            elif path == '/api/native-wake':
+                operation=obj.get('operation')
+                if operation=='enable':
+                    enabled=obj.get('enabled')
+                    if not isinstance(enabled,bool):raise ValueError('وضعیت فعال‌سازی باید درست یا نادرست باشد.')
+                    listener=self.server.wake_listener
+                    if enabled and not listener.start():raise RuntimeError(listener.detail)
+                    if not enabled:listener.stop()
+                    state.cfg['native_wake_enabled']=enabled
+                    cfg_file=state.root/'config.json'
+                    from jarvis_core import CONFIG_EXAMPLE
+                    saved={k:state.cfg.get(k, v) for k,v in CONFIG_EXAMPLE.items()}
+                    temp=cfg_file.with_suffix('.tmp')
+                    temp.write_text(json.dumps(saved,ensure_ascii=False,indent=2),'utf-8');temp.replace(cfg_file)
+                    self._json(200,{'nativeWake':listener.readiness(),'startup':startup_status()})
+                elif operation=='startup':
+                    enabled=obj.get('enabled')
+                    if not isinstance(enabled,bool):raise ValueError('وضعیت اجرای خودکار نامعتبر است.')
+                    if enabled and not self.server.wake_listener.readiness()['ready']:
+                        raise RuntimeError('برای اجرای خودکار ابتدا مدل و موتور شنود آفلاین را نصب کن.')
+                    from jarvis_core import ROOT
+                    self._json(200,{'startup':set_autostart(enabled,ROOT/'start_jarvis.py')})
+                else:raise ValueError('عملیات تنظیم بیدارباش ناشناخته است.')
+            elif path == '/api/plan':
                 self._json(200,{'plan':plan_voice_command(obj.get('text',''))})
             elif path == '/api/execute':
                 approved = obj.get('approved') is True
@@ -169,6 +211,8 @@ class JarvisHandler(BaseHTTPRequestHandler):
                     self._bad(503,'ساخت صدای طبیعی در دسترس نیست؛ از صدای مرورگر استفاده کن.')
         except PermissionError as exc:
             self._bad(403,str(exc))
+        except LiveUnavailable as exc:
+            self._bad(503,str(exc))
         except RuntimeError as exc:
             self._bad(503,str(exc))
         except (ValueError,TypeError,UnicodeDecodeError,json.JSONDecodeError) as exc:
@@ -186,6 +230,7 @@ def run(root: Path = ROOT, port: int | None = None, open_browser=False):
     port=int(port if port is not None else cfg.get('port',8800))
     if not 1 <= port <= 65535: raise ValueError('Invalid port')
     web = JarvisServer((host,port),state)
+    if cfg.get('native_wake_enabled'):web.wake_listener.start()
     url=f'http://{host}:{port}'
     print(f'JARVIS READY: {url} | {len(state.graph["nodes"])} notes | provider={cfg["provider"]}',flush=True)
     if open_browser:
@@ -193,7 +238,9 @@ def run(root: Path = ROOT, port: int | None = None, open_browser=False):
         threading.Timer(1.2,lambda:webbrowser.open(url)).start()
     try: web.serve_forever(poll_interval=.2)
     except KeyboardInterrupt: pass
-    finally:web.server_close()
+    finally:
+        web.wake_listener.stop()
+        web.server_close()
 
 if __name__=='__main__':
     import argparse

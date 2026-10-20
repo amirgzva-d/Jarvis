@@ -14,7 +14,7 @@ from pathlib import Path
 from urllib import error, request
 
 ROOT = Path(__file__).resolve().parent
-CONFIG_EXAMPLE = {"provider": "codex-cli", "api_key": "", "model": "", "notes_folder": "notes", "port": 8800, "online_tts": True, "voice": "fa-IR-FaridNeural", "offline_stt_model": "", "offline_stt_device": "auto"}
+CONFIG_EXAMPLE = {"provider": "codex-cli", "api_key": "", "model": "", "notes_folder": "notes", "port": 8800, "online_tts": True, "voice": "fa-IR-FaridNeural", "offline_stt_model": "", "offline_stt_device": "auto", "native_wake_enabled": False}
 WORDS = re.compile(r"[\w\u0600-\u06ff]+", re.UNICODE)
 WIKILINK = re.compile(r"\[\[([^\]|#]+)(?:\|[^\]]+)?\]\]")
 TITLE = re.compile(r"^\s*#\s+(.+)\s*$", re.M)

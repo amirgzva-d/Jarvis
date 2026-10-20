@@ -1,3 +1,7 @@
 # The core indexer, server, RAG retrieval, and note memory need no pip packages.
 # This optional package generates Persian neural MP3 speech from the Edge online service.
 edge-tts>=7.2.0,<8
+# Optional native Windows wake and local speech, intentionally opt-in
+faster-whisper>=1.1,<2
+sounddevice>=0.5,<1
+numpy>=1.26,<3

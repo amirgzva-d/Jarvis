@@ -2,9 +2,9 @@
 # Generates an independent Jarvis.exe. Optionally packages NSIS Setup.exe.
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
-py -3 -m pip install --upgrade pyinstaller 'edge-tts>=7.2.0,<8'
+py -3 -m pip install --upgrade pyinstaller 'edge-tts>=7.2.0,<8' 'faster-whisper>=1.1,<2' 'sounddevice>=0.5,<1' 'numpy>=1.26,<3'
 if ($LASTEXITCODE -ne 0) { throw 'Python dependencies installation failed.' }
-py -3 -m PyInstaller --noconfirm --clean --onefile --windowed --name Jarvis --icon assets\jarvis.ico --add-data 'web;web' --add-data 'notes;notes' --collect-all edge_tts --hidden-import=edge_tts start_jarvis.py
+py -3 -m PyInstaller --noconfirm --clean --onefile --windowed --name Jarvis --icon assets\jarvis.ico --add-data 'web;web' --add-data 'notes;notes' --collect-all edge_tts --collect-all faster_whisper --collect-all sounddevice --hidden-import=edge_tts start_jarvis.py
 if ($LASTEXITCODE -ne 0) { throw 'PyInstaller failed.' }
 Write-Host 'Portable executable: dist\Jarvis.exe'
 $nsis = Get-Command makensis.exe -ErrorAction SilentlyContinue
